@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>GameService.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">projekt1</a> &gt; <a href="index.source.html" class="el_package">service</a> &gt; <span class="el_source">GameService.kt</span></div><h1>GameService.kt</h1><pre class="source lang-java linenums">package service
+
+import entity.*
+
+/**
+ * Game service
+ *
+ * @property rootService
+ * @constructor Create empty Game service
+ */
+<span class="fc" id="L11">class GameService(private val rootService: RootService) : AbstractRefreshingService() {</span>
+
+    /**
+     * Set up and start new game, in which List of Players is initialized and Cards are distributed in separate stacks
+     *
+     * @param playerNames List of entered player names
+     * @param allCards List of 32 shuffled cards to play with
+     */
+    fun startGame( playerNames: MutableList&lt;String&gt;) {
+<span class="pc bpc" id="L20" title="4 of 6 branches missed.">        require(playerNames.size in 2..4){ &quot;INVALID TOTAL PLAYER!!!&quot;}</span>
+
+<span class="nc" id="L22">        val drawCards = createDrawStack()</span>
+<span class="nc" id="L23">        val middleCards = createStackOf3Cards(drawCards)</span>
+<span class="nc" id="L24">        val players: MutableList&lt;Player&gt; = mutableListOf()</span>
+<span class="nc bnc" id="L25" title="All 2 branches missed.">        for(name in playerNames){</span>
+<span class="nc" id="L26">            players.add(Player(name,createStackOf3Cards(drawCards)))</span>
+        }
+<span class="nc" id="L28">        val game = Game(players.toMutableList(),drawCards,middleCards)</span>
+<span class="nc" id="L29">        rootService.currentGame = game</span>
+<span class="nc" id="L30">        game.currentPlayer = 0</span>
+<span class="nc" id="L31">        game.players[game.currentPlayer].onTurn == false</span>
+
+<span class="nc" id="L33">        onAllRefreshables { this.refreshAfterStartGame() }</span>
+<span class="nc" id="L34">    }</span>
+    /**
+     * Creates a shuffled 32 cards list of all four suits and cards
+     * from 7 to Ace
+     * @return a mutable list of 32 PlayCard object
+     */
+    fun createDrawStack(): MutableList&lt;Card&gt; {
+<span class="nc" id="L41">        val drawStack: MutableList&lt;Card&gt; = mutableListOf()</span>
+<span class="nc" id="L42">        val cardValue = mutableListOf(</span>
+<span class="nc" id="L43">            CardValue.SEVEN,</span>
+<span class="nc" id="L44">            CardValue.EIGHT,</span>
+<span class="nc" id="L45">            CardValue.NINE,</span>
+<span class="nc" id="L46">            CardValue.TEN,</span>
+<span class="nc" id="L47">            CardValue.JACK,</span>
+<span class="nc" id="L48">            CardValue.QUEEN,</span>
+<span class="nc" id="L49">            CardValue.KING,</span>
+<span class="nc" id="L50">            CardValue.ACE)</span>
+<span class="nc bnc" id="L51" title="All 2 branches missed.">        for (suitValue in CardSuit.values()) {</span>
+<span class="nc bnc" id="L52" title="All 2 branches missed.">            for (valueValue in cardValue) {</span>
+<span class="nc" id="L53">                drawStack.add(Card(suitValue, valueValue))</span>
+            }
+        }
+<span class="nc" id="L56">        return drawStack.shuffled() as MutableList&lt;Card&gt;</span>
+    }
+    /**
+     * draw 3 cards from the draw stack for one player or for the middle stack
+     *
+     * @param drawStack: draw from this stack
+     * @return a mutable list of 3 Playcard
+     */
+     fun createStackOf3Cards(drawStack: MutableList&lt;Card&gt;): MutableList&lt;Card&gt; {
+<span class="fc" id="L65">        val temp: MutableList&lt;Card&gt; = mutableListOf()</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        for(i in 0..2){</span>
+<span class="fc" id="L67">            temp.add(i,drawStack[0])</span>
+<span class="fc" id="L68">            drawStack.removeAt(0)</span>
+        }
+<span class="fc" id="L70">        return temp</span>
+    }
+
+    /** set onTurn of current player to false
+     *  change the turn to next player
+     *  set onTurn of next player to true
+     */
+    fun changeTurn() {
+<span class="fc" id="L78">        val game = rootService.currentGame</span>
+<span class="pc bpc" id="L79" title="1 of 2 branches missed.">        checkNotNull(game) { &quot;No game is currently running.&quot; }</span>
+
+<span class="pc bpc" id="L81" title="1 of 4 branches missed.">        if(game.hasEnded == true || game.afterKnocking == game.players.size-1){</span>
+<span class="fc" id="L82">            endGame()</span>
+        } else {
+<span class="fc" id="L84">            game.players[game.currentPlayer].onTurn == false</span>
+        }
+<span class="fc" id="L86">        game.currentPlayer = (game.currentPlayer + 1) % game.players.size</span>
+<span class="fc" id="L87">        game.players[game.currentPlayer].onTurn = true</span>
+
+<span class="pc" id="L89">        onAllRefreshables { this.refreshAfterChangeTurn() }</span>
+<span class="fc" id="L90">    }</span>
+    /**
+     * set hasEnded of current game to true
+     * end game and show the sorted list of player in GUI
+     * @return sorted list of player
+     */
+    fun endGame():MutableList&lt;Player&gt; {
+<span class="fc" id="L97">        val game = rootService.currentGame</span>
+<span class="pc bpc" id="L98" title="1 of 2 branches missed.">        checkNotNull(game) { &quot;No game is currently running.&quot; }</span>
+<span class="fc" id="L99">        game.hasEnded = true</span>
+<span class="fc" id="L100">        var finalListOfPlayer = game.players.sortedByDescending {player: Player -&gt; player.score }.toMutableList()</span>
+<span class="pc" id="L101">        onAllRefreshables { this.refreshAfterEndGame(finalListOfPlayer) }</span>
+<span class="fc" id="L102">        return finalListOfPlayer</span>
+    }
+    /**
+     * check the Status of current Game
+     * if the current player is not the last player after knocking, increase afterKnocking
+     * if afterKnocking equals the nummber of player minus 1 or hasEnded equals true or there is on 1,2 card from drawstack
+     * then the current game shoulb be ended
+     */
+    fun checkStatusOfGame(){
+<span class="fc" id="L111">        val game = rootService.currentGame</span>
+<span class="pc bpc" id="L112" title="1 of 2 branches missed.">        checkNotNull(game) { &quot;No game currently running.&quot;}</span>
+<span class="fc bfc" id="L113" title="All 2 branches covered.">        if(game.hasKnocked){</span>
+<span class="fc" id="L114">            game.afterKnocking++</span>
+        }
+<span class="pc bpc" id="L116" title="1 of 4 branches missed.">        if (game.afterKnocking == game.players.size-1 || game.drawCards.size &lt; 3){</span>
+<span class="fc" id="L117">            endGame()</span>
+        }
+
+<span class="fc" id="L120">    }</span>
+
+
+
+
+
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>

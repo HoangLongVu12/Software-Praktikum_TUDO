@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="de"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>PlayerService.kt</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">projekt1</a> &gt; <a href="index.source.html" class="el_package">service</a> &gt; <span class="el_source">PlayerService.kt</span></div><h1>PlayerService.kt</h1><pre class="source lang-java linenums">package service
+
+import entity.*
+
+/**
+ * TODO manage all the players action
+ * in all methods of player actions we should check whether someone has knocked, if the current player is the last one
+ * after knocking that means afterKnocking equals 3, then the current game should be ended
+ *
+ * @property rootService
+ */
+
+<span class="fc" id="L13">class PlayerService(private val rootService: RootService) : AbstractRefreshingService() {</span>
+
+<span class="fc" id="L15">    private val gameService = rootService.gameService</span>
+
+    /**
+     * calculate score of current player and is called after current player's cards were updated
+     *
+     * If 3 cards have the same suit, current player gets 30.5 points
+     * Otherwise if current player has only 2 cards with the same suit, player's score must be the maximum points of 2 cards that
+     * have the same suit and the rest card
+     * Otherwise if current player has 3 cards with 3 different suits, player's score is the sum of 3 card values
+     *
+     * @return calculated points of current player
+     */
+    fun calculateScore(player: Player) : Double {
+<span class="fc" id="L28">        var game = rootService.currentGame</span>
+<span class="pc bpc" id="L29" title="1 of 2 branches missed.">        checkNotNull(game) { &quot;No game is currently running.&quot; }</span>
+<span class="fc" id="L30">        var card0 = player.playerCards[0]</span>
+<span class="fc" id="L31">        var card1 = player.playerCards[1]</span>
+<span class="fc" id="L32">        var card2 = player.playerCards[2]</span>
+<span class="fc" id="L33">        var sum : Double = 0.0</span>
+
+<span class="pc bpc" id="L35" title="3 of 4 branches missed.">        if(card0.equalsValue(card1) &amp;&amp; card0.equalsValue(card2)){</span>
+<span class="nc" id="L36">            return 30.5</span>
+        }
+
+<span class="pc bpc" id="L39" title="3 of 4 branches missed.">        if(card0.equalsSuit(card1) &amp;&amp; card0.equalsSuit(card2)) {</span>
+<span class="nc" id="L40">            return card0.toDoubleValue() + card1.toDoubleValue() + card2.toDoubleValue()</span>
+        }
+
+<span class="pc bpc" id="L43" title="1 of 2 branches missed.">        if(card0.equalsSuit(card1)){</span>
+<span class="nc" id="L44">            sum = card0.toDoubleValue() + card1.toDoubleValue()</span>
+<span class="nc" id="L45">            return maxOf(sum, card2.toDoubleValue())</span>
+        }
+
+<span class="pc bpc" id="L48" title="1 of 2 branches missed.">        if(card0.equalsSuit(card2)){</span>
+<span class="nc" id="L49">            sum = card0.toDoubleValue() + card2.toDoubleValue()</span>
+<span class="nc" id="L50">            return maxOf(sum, card1.toDoubleValue())</span>
+        }
+
+<span class="pc bpc" id="L53" title="1 of 2 branches missed.">        if(card1.equalsSuit(card2)){</span>
+<span class="nc" id="L54">            sum = card1.toDoubleValue() + card2.toDoubleValue()</span>
+<span class="nc" id="L55">            return maxOf(sum, card0.toDoubleValue())</span>
+        }
+
+<span class="pc" id="L58">        onAllRefreshables { this.refreshAfterCalculateScore() }</span>
+<span class="fc" id="L59">        return maxOf(card0.toDoubleValue(), card1.toDoubleValue(), card2.toDoubleValue())</span>
+    }
+
+    /**
+     * if noone has knocked then set hasKnocked to True
+     * if someone has knocked and now is the turn of the next player, increase afterKnocking
+     * if that is already the last player after one player knocked, end current game
+     *
+     */
+    fun knock() {
+<span class="fc" id="L69">        var game = rootService.currentGame</span>
+<span class="pc bpc" id="L70" title="1 of 2 branches missed.">        checkNotNull(game) { &quot;No game is currently running.&quot; }</span>
+<span class="fc" id="L71">        var currentPlayer = game.players[game.currentPlayer]</span>
+<span class="pc bpc" id="L72" title="1 of 2 branches missed.">        if(!game.hasKnocked){</span>
+<span class="fc" id="L73">            game.hasKnocked = true</span>
+<span class="nc bnc" id="L74" title="All 6 branches missed.">        } else if(game.afterKnocking in 0..game.players.size-2){</span>
+<span class="nc" id="L75">            game.afterKnocking++</span>
+<span class="nc" id="L76">            rootService.gameService.changeTurn()</span>
+        } else {
+<span class="nc" id="L78">            rootService.gameService.endGame()</span>
+        }
+
+
+<span class="pc" id="L82">        onAllRefreshables { this.refreshAfterPlayerAction() }</span>
+<span class="fc" id="L83">    }</span>
+    /**
+     * current player just passes
+     * as long as the next player has not passed so the current player is not the last player after someone has passed
+     */
+    fun pass(){
+<span class="fc" id="L89">        val game = rootService.currentGame</span>
+<span class="pc bpc" id="L90" title="1 of 2 branches missed.">        checkNotNull(game) { &quot;No game currently running.&quot;}</span>
+<span class="fc" id="L91">        val player = game.players[game.currentPlayer]</span>
+<span class="fc" id="L92">        val nextPlayer = game.players[(game.currentPlayer + 1) % game.players.size]</span>
+<span class="fc" id="L93">        rootService.gameService.checkStatusOfGame()</span>
+<span class="fc bfc" id="L94" title="All 2 branches covered.">        if(nextPlayer.hasPassed == true) {</span>
+<span class="fc" id="L95">                game.middleCards = gameService.createStackOf3Cards(game.drawCards).toMutableList()</span>
+<span class="fc bfc" id="L96" title="All 2 branches covered.">                for (i in game.players) {</span>
+<span class="fc" id="L97">                    i.hasPassed = false</span>
+                }
+<span class="fc" id="L99">                rootService.gameService.changeTurn()</span>
+        } else {
+<span class="fc" id="L101">            player.hasPassed = true</span>
+<span class="fc" id="L102">            rootService.gameService.changeTurn()</span>
+        }
+
+<span class="pc" id="L105">        onAllRefreshables { this.refreshAfterPlayerAction() }</span>
+
+<span class="fc" id="L107">    }</span>
+
+    /**
+     * swap one player's card and is auxiliary method for [swapOne] and [swapAll]
+     *
+     * @param playerCardIndex index of current player's card, which will be swaped
+     * @param openCardIndex index of card in the middle stack, which will be swaped
+     */
+    private fun swapPlayerCard(playerCardIndex: Int, openCardIndex: Int) {
+<span class="fc" id="L116">        var game = rootService.currentGame</span>
+<span class="fc" id="L117">        var currentPlayer = game!!.players[game.currentPlayer]</span>
+<span class="fc" id="L118">        var playerCard = currentPlayer.playerCards[playerCardIndex]</span>
+<span class="fc" id="L119">        var middleCard = game.middleCards[openCardIndex]</span>
+
+<span class="fc" id="L121">        currentPlayer.playerCards[playerCardIndex] = middleCard</span>
+<span class="fc" id="L122">        game.middleCards[openCardIndex] = playerCard</span>
+<span class="fc" id="L123">    }</span>
+
+    /**
+     * Check if current player is valid and swap one current player's card with one in the middle stack
+     *
+     * @param playerCardIndex current player's card index that is chosen to exchange
+     * @param openCardIndex card in middle stack that is chosen to exchange
+     */
+    fun swapOne() {
+<span class="fc" id="L132">        val game = rootService.currentGame</span>
+<span class="pc bpc" id="L133" title="1 of 2 branches missed.">        checkNotNull(game) { &quot;No game currently running.&quot;}</span>
+
+<span class="fc" id="L135">        swapPlayerCard(game.indexChosenCard, game.players[game.currentPlayer].indexChosenCard)</span>
+
+<span class="fc" id="L137">        rootService.gameService.checkStatusOfGame()</span>
+<span class="fc bfc" id="L138" title="All 2 branches covered.">        for (i in game.players) {</span>
+<span class="fc" id="L139">            i.hasPassed = false</span>
+        }
+<span class="fc" id="L141">        rootService.gameService.changeTurn()</span>
+
+<span class="pc" id="L143">        onAllRefreshables { this.refreshAfterPlayerAction() }</span>
+<span class="fc" id="L144">    }</span>
+
+    /**
+     * Check if current player is valid and exchange all current player's cards with cards in the middle stack
+     *
+     */
+    fun swapAll() {
+<span class="fc" id="L151">        var game = rootService.currentGame</span>
+<span class="fc" id="L152">        var currentPlayer = game!!.players[game.currentPlayer]</span>
+        // reset index of the chosen card
+<span class="fc" id="L154">        game.indexChosenCard = -1</span>
+<span class="fc" id="L155">        game.players[game.currentPlayer].indexChosenCard = - 1</span>
+
+<span class="fc" id="L157">        currentPlayer.playerCards.forEachIndexed { index, _ -&gt; swapPlayerCard(index, index) }</span>
+
+<span class="fc" id="L159">        rootService.gameService.checkStatusOfGame()</span>
+<span class="fc bfc" id="L160" title="All 2 branches covered.">        for (i in game.players) {</span>
+<span class="fc" id="L161">            i.hasPassed = false</span>
+        }
+<span class="fc" id="L163">        rootService.gameService.changeTurn()</span>
+
+
+<span class="pc" id="L166">        onAllRefreshables { this.refreshAfterPlayerAction() }</span>
+<span class="fc" id="L167">    }</span>
+
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.7.202105040129</span></div></body></html>
